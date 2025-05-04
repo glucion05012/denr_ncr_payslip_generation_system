@@ -118,12 +118,24 @@ def edit_employee(request, emp_id):
         employee.eligibility = eligibility
         employee.save()
 
+        # Handle new attachments
+        files = request.FILES.getlist('attachments')
+        for file in files:
+            EmployeeAttachment.objects.create(employee=employee, file=file)
+            
         # Send response back
         messages.success(request, "Employee details updated successfully.")
         return redirect('dashboard')
     
     # Display the employee data in a form
     return render(request, "edit_employee.html", {"employee": employee})
+
+def delete_attachment(request, attachment_id):
+    if request.method == "POST":
+        attachment = get_object_or_404(EmployeeAttachment, id=attachment_id)
+        attachment.delete()
+        return JsonResponse({"success": True, "message": "Attachment deleted."})
+    return JsonResponse({"success": False, "message": "Invalid request."})
 
 def delete_employee(request, emp_id):
     employee = get_object_or_404(Employee, id=emp_id)

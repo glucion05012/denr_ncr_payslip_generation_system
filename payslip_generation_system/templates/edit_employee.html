@@ -74,7 +74,7 @@
 
     <h2>Edit Employee</h2>
 
-    <form method="POST" enctype="multipart/form-data">
+    <form action="{% url 'edit_employee' employee.id %}" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         
         <label for="fullname">Full Name</label>
@@ -130,7 +130,58 @@
             <option value="No" {% if employee.eligibility == "No" %}selected{% endif %}>No</option>
         </select>
 
+         <!-- Existing Attachments Table -->
+        <label>Existing Attachments</label>
+        <table>
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attachment in employee.attachments.all %}
+                <tr id="attachment-row-{{ attachment.id }}">
+                    <td><a href="{{ attachment.file.url }}" target="_blank">{{ attachment.file.name|cut:"attachments/" }}</a></td>
+                    <td>
+                        <button type="button" class="remove-btn" onclick="removeAttachment({{ attachment.id }})"
+                            style="background-color: #e74c3c; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 14px; line-height: 1;">
+                            &times;
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2">No attachments found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- New Attachments -->
+        <label for="attachments">Add New Attachments</label>
+        <input type="file" name="attachments" multiple>
+
         <button type="submit">Save Changes</button>
     </form>
 
+    <script>
+        function removeAttachment(attachmentId) {
+            if (confirm("Are you sure you want to delete this attachment?")) {
+                fetch("{% url 'delete_attachment' 0 %}".replace('0', attachmentId), {
+                    method: "POST",
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById("attachment-row-" + attachmentId).remove();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        }
+    </script>
 {% endblock %}
