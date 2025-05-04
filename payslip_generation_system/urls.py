@@ -19,6 +19,7 @@ urlpatterns = [
     path('employee/edit/<int:emp_id>/', views.edit_employee, name='edit_employee'),
     path('employee/delete/<int:emp_id>/', views.delete_employee, name='delete_employee'),
     path('attachments/delete/<int:attachment_id>/', views.delete_attachment, name='delete_attachment'),
+    path('employee/view/<int:emp_id>/', views.view_employee, name='view_employee'),
 
     # get data from database
     path('employee-data/', views.employee_data_json, name='employee_data_json'),

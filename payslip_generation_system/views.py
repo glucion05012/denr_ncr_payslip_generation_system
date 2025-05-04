@@ -7,6 +7,7 @@ from .models import Employee, EmployeeAttachment
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
 
 # Create your views here.
 def test(request):
@@ -186,7 +187,11 @@ def employee_data_json(request):
             emp.tax_declaration,
             salary,
             emp.eligibility,
-            f"<button class='edit-btn' data-id='{emp.id}'>Edit</button> <button class='delete-btn' data-id='{emp.id}'>Delete</button>"
+            f"""<button class='btn btn-info btn-sm view-btn' data-id='{emp.id}' data-toggle='modal' data-target='#viewModal'>
+                    <i class="fas fa-eye"></i>
+                </button> 
+                <button class='edit-btn btn btn-primary btn-sm view-btn' data-id='{emp.id}'><i class="fas fa-pen"></i></button> 
+                <button class='delete-btn btn btn-danger btn-sm view-btn' data-id='{emp.id}'><i class="fas fa-trash"></i></button>"""
         ])
 
     return JsonResponse({
@@ -195,3 +200,31 @@ def employee_data_json(request):
         'recordsFiltered': total_records,
         'data': data
     })
+    
+def view_employee(request, emp_id):
+    employee = get_object_or_404(Employee, id=emp_id)
+    attachments = EmployeeAttachment.objects.filter(employee=employee)
+    
+    # Prepare the employee data to send as JSON
+    employee_data = {
+        'fullname': employee.fullname,
+        'date_hired': employee.date_hired.strftime('%Y-%m-%d'),
+        'position': employee.position,
+        'educational_attainment': employee.educational_attainment,
+        'birthdate': employee.birthdate.strftime('%Y-%m-%d'),
+        'gender': employee.gender,
+        'fund_source': employee.fund_source,
+        'tax_declaration': employee.tax_declaration,
+        'salary': f"₱{employee.salary:,.2f}",
+        'eligibility': employee.eligibility,
+        'attachments': [
+            {
+                'file_url': attachment.file.url,
+                'file_name': attachment.file.name.split('/')[-1],
+                'attachment_id': attachment.id
+            }
+            for attachment in attachments
+        ]
+    }
+    
+    return JsonResponse({'employee': employee_data})
