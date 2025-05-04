@@ -1,0 +1,138 @@
+{% extends "includes/base.html" %}
+
+{% block title %}DENR NCR - PaGeS{% endblock title %}
+
+
+{% block content %}
+
+    <style>
+
+        h2 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #2c3e50;
+        }
+
+        form {
+        background: #ffffff;
+        max-width: 600px;
+        margin: auto;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+        font-weight: 600;
+        margin-top: 15px;
+        display: block;
+        color: #34495e;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select,
+        input[type="file"] {
+        width: 100%;
+        padding: 10px 12px;
+        margin-top: 6px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+        border-color: #3498db;
+        outline: none;
+        }
+
+        button {
+        background-color: #3498db;
+        color: white;
+        padding: 12px 20px;
+        margin-top: 25px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+        transition: background-color 0.3s;
+        }
+
+        button:hover {
+        background-color: #2980b9;
+        }
+
+        input[type="file"] {
+        padding: 8px;
+        background: #f8f8f8;
+        }
+    </style>
+    <form action="{% url 'add_employee' %}" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <label for="fullname">Full Name</label>
+        <input type="text" id="pfullnameosition" name="fullname" required>
+
+        <label for="date_hired">Date Hired</label>
+        <input type="date" id="date_hired" name="date_hired" required>
+
+        <label for="position">Position</label>
+        <input type="text" id="position" name="position" required>
+
+        <label for="educational_attainment">Educational Attainment</label>
+        <select id="educational_attainment" name="educational_attainment" required>
+        <option value="">-- Select --</option>
+        <option value="High School">High School</option>
+        <option value="Vocational">Vocational</option>
+        <option value="College">College</option>
+        <option value="Post-Graduate">Post-Graduate</option>
+        </select>
+
+        <label for="birthdate">Birthdate</label>
+        <input type="date" id="birthdate" name="birthdate" required>
+
+        <label for="gender">Gender</label>
+        <select id="gender" name="gender" required>
+        <option value="">-- Select --</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        </select>
+
+        <label for="fund_source">Fund Source</label>
+        <select id="fund_source" name="fund_source" required>
+        <option value="">-- Select --</option>
+        <option value="National">National</option>
+        <option value="Local">Local</option>
+        <option value="Foreign">Foreign</option>
+        </select>
+
+        <label for="with_tax_declaration">With Tax Declaration?</label>
+        <select id="with_tax_declaration" name="with_tax_declaration" required>
+        <option value="">-- Select --</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+        </select>
+
+        <label for="salary">Salary (₱)</label>
+        <input type="number" id="salary" name="salary" min="0" step="0.01" required>
+
+        <label for="eligibility">Eligibility</label>
+        <select id="eligibility" name="eligibility" required>
+        <option value="">-- Select --</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+        </select>
+
+        <label for="attachments">Attachments</label>
+        <input type="file" id="attachments" name="attachments" multiple>
+
+        <button type="submit">Save</button>
+    </form>
+
+{% endblock %}

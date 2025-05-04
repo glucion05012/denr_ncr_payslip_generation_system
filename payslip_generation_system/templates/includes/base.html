@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DENR NCR{% endblock %}</title>
+
+    {% load static %}  
+    <link rel="icon" href="{% static 'images/denr-logo.png' %}">
+    {% include 'includes/scripts.html' %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% include 'includes/loader.html' %}
+</head>
+<body>
+    
+    {% include 'includes/navbar.html' %}
+
+    <div class="content-wrapper">
+        {% block content %}
+        <!-- Content from child templates will go here -->
+        {% endblock %}
+    </div>
+
+    {% include 'includes/footer.html' %}
+    
+    <!-- Django messages via swal -->
+    {% if messages %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            {% for message in messages %}
+                Swal.fire({
+                    title: 'Notice',
+                    text: '{{ message|escapejs }}',
+                    icon: '{% if "success" in message.tags %}success{% elif "error" in message.tags %}error{% elif "warning" in message.tags %}warning{% else %}info{% endif %}',
+                    confirmButtonText: 'OK'
+                });
+            {% endfor %}
+        });
+    </script>
+    {% endif %}
+</body>
+</html>
