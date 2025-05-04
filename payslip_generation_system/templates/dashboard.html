@@ -53,7 +53,10 @@
             });
 
             // Delete button click
-            $(document).on('click', '.delete-btn', function() {
+            $(document).on('click', '.delete-btn', function(event) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+
                 var empId = $(this).data('id');
                 
                 // Confirm deletion
