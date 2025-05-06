@@ -3,11 +3,12 @@ from django.db import connection
 from django.http import JsonResponse
 from django.core.files.storage import FileSystemStorage
 from django.contrib import messages
-from .models import Employee, EmployeeAttachment
+from .models import Adjustment, Employee, EmployeeAttachment
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
+import json
 
 # Create your views here.
 def test(request):
@@ -157,17 +158,40 @@ def employee_data_json(request):
     start = int(request.GET.get('start', 0))
     length = int(request.GET.get('length', 10))
     search_value = request.GET.get('search[value]', '')
+    order_col_index = int(request.GET.get('order[0][column]', 0))
+    order_dir = request.GET.get('order[0][dir]', 'asc')
 
+    # Basic queryset
     queryset = Employee.objects.all()
 
+    # Search filter
     if search_value:
         queryset = queryset.filter(
             Q(fullname__icontains=search_value) |
-            Q(position__icontains=search_value)
-    )
+            Q(position__icontains=search_value) |
+            Q(educational_attainment__icontains=search_value) |
+            Q(gender__icontains=search_value) |
+            Q(fund_source__icontains=search_value) |
+            Q(tax_declaration__icontains=search_value) |
+            Q(eligibility__icontains=search_value)
+        )
 
-    total_records = queryset.count()
+    total_records = queryset.count()  # Total records before filtering
 
+    # Ordering logic (match the columns with their corresponding fields)
+    columns = ['fullname', 'date_hired', 'position', 'educational_attainment', 'birthdate', 'gender', 'fund_source', 'tax_declaration', 'salary', 'eligibility']
+    if order_col_index >= len(columns):
+        order_column = 'date_hired'  # Default to sorting by date_hired
+    else:
+        order_column = columns[order_col_index]
+    
+    if order_dir == 'desc':
+        order_column = f'-{order_column}'
+
+    # Apply ordering to the queryset
+    queryset = queryset.order_by(order_column)
+
+    # Pagination
     paginator = Paginator(queryset, length)
     page_number = (start // length) + 1
     page = paginator.get_page(page_number)
@@ -176,6 +200,7 @@ def employee_data_json(request):
     for emp in page:
         salary = f"₱{emp.salary:,.2f}"
         
+        # Add data to the response
         data.append([
             emp.fullname,
             emp.date_hired.strftime('%Y-%m-%d'),
@@ -187,17 +212,18 @@ def employee_data_json(request):
             emp.tax_declaration,
             salary,
             emp.eligibility,
-            f"""<button class='btn btn-info btn-sm view-btn' data-id='{emp.id}' data-toggle='modal' data-target='#viewModal'>
+            f"""<button class='adjustments-btn btn btn-warning btn-sm view-btn' title='Adjustments' data-id='{emp.id}'><i class="fas fa-list"></i></button> 
+                <button class='btn btn-info btn-sm view-btn' data-id='{emp.id}' title='Information' data-toggle='modal' data-target='#viewModal'>
                     <i class="fas fa-eye"></i>
                 </button> 
-                <button class='edit-btn btn btn-primary btn-sm view-btn' data-id='{emp.id}'><i class="fas fa-pen"></i></button> 
-                <button class='delete-btn btn btn-danger btn-sm view-btn' data-id='{emp.id}'><i class="fas fa-trash"></i></button>"""
+                <button class='edit-btn btn btn-primary btn-sm view-btn' title='Edit' data-id='{emp.id}'><i class="fas fa-pen"></i></button> 
+                <button class='delete-btn btn btn-danger btn-sm view-btn' title='Delete' data-id='{emp.id}'><i class="fas fa-trash"></i></button>"""
         ])
 
     return JsonResponse({
         'draw': draw,
         'recordsTotal': total_records,
-        'recordsFiltered': total_records,
+        'recordsFiltered': total_records,  # For now, set filtered same as total
         'data': data
     })
     
@@ -228,3 +254,93 @@ def view_employee(request, emp_id):
     }
     
     return JsonResponse({'employee': employee_data})
+
+def adjustments_employee(request, emp_id):
+    employee = get_object_or_404(Employee, id=emp_id)
+    adjustments = Adjustment.objects.filter(employee=employee)
+    return render(request, 'adjustments_employee.html', {
+        'employee': employee,
+        'adjustments': adjustments
+    })
+
+def add_adjustment(request, emp_id):
+    employee = get_object_or_404(Employee, id=emp_id)
+    if request.method == 'POST':
+        Adjustment.objects.create(
+            employee=employee,
+            name=request.POST['name'],
+            type=request.POST['type'],
+            amount=request.POST['amount'],
+            details=request.POST.get('details', ''),
+            month=request.POST.get('month'),
+            cutoff=request.POST.get('cutoff'),
+            status=request.POST.get('status', 'Pending'),
+            remarks=request.POST.get('remarks', ''),
+        )
+        messages.success(request, 'Adjustment successfully added.')
+        return redirect('adjustments_employee', emp_id=employee.id)
+    
+def employee_adjustments_json(request, emp_id):
+    employee = get_object_or_404(Employee, id=emp_id)
+    draw = int(request.GET.get('draw', 1))
+    start = int(request.GET.get('start', 0))
+    length = int(request.GET.get('length', 10))
+    search_value = request.GET.get('search[value]', '')
+
+    queryset = Adjustment.objects.filter(employee=employee)
+
+    if search_value:
+        queryset = queryset.filter(
+            Q(name__icontains=search_value) |
+            Q(type__icontains=search_value) |
+            Q(details__icontains=search_value) |
+            Q(computation__icontains=search_value) |
+            Q(cutoff__icontains=search_value) |
+            Q(month__icontains=search_value) |
+            Q(status__icontains=search_value) |
+            Q(remarks__icontains=search_value)
+        )
+
+    total_records = Adjustment.objects.filter(employee=employee).count()
+    filtered_records = queryset.count()
+
+    # Ordering logic
+    columns = ['name', 'type', 'amount', 'details', 'cutoff_month', 'status', 'remarks', 'created_at', 'updated_at']
+    order_col_index = int(request.GET.get('order[0][column]', 0))
+    order_dir = request.GET.get('order[0][dir]', 'asc')
+
+    if order_col_index >= len(columns):
+        order_column = 'created_at'  # Default column for ordering
+    else:
+        # Map 'cutoff_month' to its model representation: `month` or `cutoff`
+        if columns[order_col_index] == 'cutoff_month':
+            order_column = 'month'  # or 'cutoff' depending on how you want to order it
+        else:
+            order_column = columns[order_col_index]
+
+    if order_dir == 'desc':
+        order_column = f'-{order_column}'  # Handle descending order
+    
+    # Apply ordering based on the dynamic column
+    queryset = queryset.order_by(order_column)[start:start + length]
+
+    data = []
+    for adj in queryset:
+        data.append({
+            "name": adj.name,
+            "type": adj.type,
+            "amount": float(adj.amount),
+            "details": adj.details,
+            "cutoff_month": f"{adj.month} - {adj.cutoff}",  # Display field
+            "status": adj.status,
+            "remarks": adj.remarks,
+            "created_at": adj.created_at.strftime('%Y-%m-%d %H:%M'),
+            "updated_at": adj.updated_at.strftime('%Y-%m-%d %H:%M'),
+        })
+
+    return JsonResponse({
+        "draw": draw,
+        "recordsTotal": total_records,
+        "recordsFiltered": filtered_records,
+        "data": data
+    })

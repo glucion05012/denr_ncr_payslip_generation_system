@@ -20,9 +20,14 @@ urlpatterns = [
     path('employee/delete/<int:emp_id>/', views.delete_employee, name='delete_employee'),
     path('attachments/delete/<int:attachment_id>/', views.delete_attachment, name='delete_attachment'),
     path('employee/view/<int:emp_id>/', views.view_employee, name='view_employee'),
+    path('employee/adjustments/<int:emp_id>/', views.adjustments_employee, name='adjustments_employee'),
+    path('employee/adjustments/add/<int:emp_id>/', views.add_adjustment, name='add_adjustment'),
+
 
     # get data from database
     path('employee-data/', views.employee_data_json, name='employee_data_json'),
+    path('employee/adjustments/json/<int:emp_id>/', views.employee_adjustments_json, name='employee_adjustments_json'),
+
 ]
 
 if settings.DEBUG:

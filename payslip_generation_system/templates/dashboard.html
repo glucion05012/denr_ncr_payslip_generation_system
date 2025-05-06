@@ -27,9 +27,7 @@
             <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewEmployeeModalLabel">Employee Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span>&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="employeeDetailsBody">
                 <!-- Employee details will be dynamically injected here -->
@@ -148,6 +146,12 @@
                         $('#employeeDetailsBody').html('<div class="text-danger text-center">Failed to load employee data.</div>');
                     }
                 });
+            });
+
+            // Adjustmets button click
+            $(document).on('click', '.adjustments-btn', function() {
+                var empId = $(this).data('id');
+                window.location.href = '/employee/adjustments/' + empId + '/';
             });
         });
     </script>
