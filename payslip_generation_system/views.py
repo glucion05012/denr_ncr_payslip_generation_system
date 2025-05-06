@@ -526,7 +526,9 @@ def payslip(request):
             'total_deductions' : total_deductions,
             'total_add': total_add,
             'net_pay': basic_salary_cutoff - total_deductions + total_add,
-            
+            'employees': employees,  # Make sure to pass the employees list here
+            'month_choices': month_choices,
+            'current_month': current_month,
         }
 
         return render(request, 'payslip.html', context)
