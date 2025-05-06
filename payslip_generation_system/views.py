@@ -34,11 +34,23 @@ def login(request):
 
         if user:
             # Successful login
-           return JsonResponse({
-                'success': True, 
-                'message': 'Login successful', 
-                'redirect_url': '/dashboard/',
-            })
+            request.session['user_id'] = user[0]
+            request.session['fullname'] = user[1]
+            request.session['user_type'] = user[7] 
+            
+            if user[7] == 'employee':
+                # Redirect to employee dashboard
+                return JsonResponse({
+                    'success': True, 
+                    'message': 'Login successful', 
+                    'redirect_url': 'payslip/',
+                })
+            else:
+                return JsonResponse({
+                    'success': True, 
+                    'message': 'Login successful', 
+                    'redirect_url': '/dashboard/',
+                })
         else:
             # Invalid credentials
             return JsonResponse({
@@ -96,10 +108,17 @@ def add_employee(request):
                 file=f              # Save the file in the "employee_attachments" folder inside the media directory
             )
             
+        fullname_parts = employee.fullname.split()
+        if len(fullname_parts) >= 2:
+            # Get the first word (firstname) and the last word (lastname)
+            firstname = fullname_parts[0]
+            lastname = fullname_parts[-1]
+            full_name_concatenated = f"{firstname}{lastname}"
+        
         User.objects.create(
             name=fullname,
             division=position,
-            username=fullname,
+            username=full_name_concatenated,
             password=birthdate,
             type="employee",
             status="1",
@@ -392,7 +411,13 @@ def employee_adjustments_json(request, emp_id):
     })
     
 def payslip(request):
-    employees = Employee.objects.all()
+    if request.session.get('user_type') == 'employee':
+        # Get only the employee that matches the logged-in user's ID
+        fullname = request.session.get('fullname')
+        employees = Employee.objects.filter(fullname=fullname)
+    else:
+        employees = Employee.objects.all()
+    # employees = Employee.objects.all()
     
     # Define month choices (you can make this dynamic if needed)
     month_choices = [
