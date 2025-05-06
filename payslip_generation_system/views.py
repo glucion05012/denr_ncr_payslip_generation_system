@@ -415,7 +415,8 @@ def payslip(request):
             employee=employee,
             name="Late",
             month=selected_month,
-            cutoff=selected_cutoff
+            cutoff=selected_cutoff,
+            status="Approved"
             # Adjusted condition to match selected month
         )
         
