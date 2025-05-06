@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'payslip_generation_system'
+    'payslip_generation_system',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [

@@ -266,11 +266,28 @@ def adjustments_employee(request, emp_id):
 def add_adjustment(request, emp_id):
     employee = get_object_or_404(Employee, id=emp_id)
     if request.method == 'POST':
+        
+        name = request.POST['name']
+        raw_amount = request.POST['details']
+
+        # Compute amount if the adjustment is for "Late"
+        if name == 'Late':
+            try:
+                minutes_late = float(raw_amount)
+                daily_rate = float(employee.salary) / 22
+                per_minute_rate = daily_rate / (8 * 60)
+                computed_amount = round(per_minute_rate * minutes_late, 2)
+            except Exception:
+                computed_amount = 0.00
+        else:
+            computed_amount = raw_amount  # use as is
+
+        # Create the adjustment record
         Adjustment.objects.create(
             employee=employee,
             name=request.POST['name'],
             type=request.POST['type'],
-            amount=request.POST['amount'],
+            amount=computed_amount,
             details=request.POST.get('details', ''),
             month=request.POST.get('month'),
             cutoff=request.POST.get('cutoff'),
@@ -305,7 +322,7 @@ def employee_adjustments_json(request, emp_id):
     filtered_records = queryset.count()
 
     # Ordering logic
-    columns = ['name', 'type', 'amount', 'details', 'cutoff_month', 'status', 'remarks', 'created_at', 'updated_at']
+    columns = ['name', 'type', 'amount', 'details', 'cutoff_month', 'status', 'remarks', 'created_at']
     order_col_index = int(request.GET.get('order[0][column]', 0))
     order_dir = request.GET.get('order[0][dir]', 'asc')
 
@@ -326,16 +343,25 @@ def employee_adjustments_json(request, emp_id):
 
     data = []
     for adj in queryset:
+        if adj.name != "Late":
+            details = adj.details
+        else:
+            details = f"{int(adj.details)} minutes"
+        
+        if adj.type == "Deduction":
+            amount = f"<span style='color:red'>(₱{adj.amount:,.2f})</span>"
+        else:
+            amount = f"<span style='color:green'>₱{adj.amount:,.2f}</span>"
+            
         data.append({
             "name": adj.name,
             "type": adj.type,
-            "amount": float(adj.amount),
-            "details": adj.details,
+            "amount": amount,
+            "details": details,
             "cutoff_month": f"{adj.month} - {adj.cutoff}",  # Display field
             "status": adj.status,
             "remarks": adj.remarks,
             "created_at": adj.created_at.strftime('%Y-%m-%d %H:%M'),
-            "updated_at": adj.updated_at.strftime('%Y-%m-%d %H:%M'),
         })
 
     return JsonResponse({
