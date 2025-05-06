@@ -425,17 +425,60 @@ def payslip(request):
         
         # Format the salary period
         salary_period = f"{selected_month} - {selected_cutoff}"
+        
+        #adjustment_minus
+        all_adjustment_minus = Adjustment.objects.filter(
+            employee=employee,
+            type="Deduction",
+            month=selected_month,
+            cutoff=selected_cutoff,
+            status="Approved"
+            # Adjusted condition to match selected month
+        )
+        
+        # Sum the amount for all adjustments
+        total_adjustment_amount_minus = all_adjustment_minus.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
 
+
+     
+        total_deductions = tax_deduction + philhealth + late_amt_total + total_adjustment_amount_minus
+
+
+        #adjustment_plus
+        all_adjustment_plus = Adjustment.objects.filter(
+            employee=employee,
+            type="Income",
+            month=selected_month,
+            cutoff=selected_cutoff,
+            status="Approved"
+            # Adjusted condition to match selected month
+        )
+        
+        # Sum the amount for all adjustments
+        total_adjustment_amount_plus = all_adjustment_plus.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        total_add = total_adjustment_amount_plus
+        
+        basic_salary_cutoff = basic_salary / 2  # Assuming the salary is for a month and you want half for the cutoff
+        
         context = {
             'employee_name': employee.fullname,
             'position': employee.position,
             'employee_id': employee.id,
             'salary_period': salary_period,
-            'basic_salary': basic_salary,
+            'selected_cutoff': selected_cutoff,
+            'basic_salary_cutoff': basic_salary_cutoff,
             'tax_deduction': tax_deduction,
             'philhealth': philhealth,
             'late_amt_total': late_amt_total,
             'late_min_total': late_min_total,
+            'total_adjustment_amount_minus': total_adjustment_amount_minus,
+            'all_adjustment_minus': all_adjustment_minus,
+            'total_adjustment_amount_plus': total_adjustment_amount_plus,
+            'all_adjustment_plus': all_adjustment_plus,
+            'total_deductions' : total_deductions,
+            'total_add': total_add,
+            'net_pay': basic_salary_cutoff - total_deductions + total_add,
             
         }
 
