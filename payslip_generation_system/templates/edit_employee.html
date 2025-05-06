@@ -108,9 +108,9 @@
         <label for="fund_source">Fund Source</label>
         <select id="fund_source" name="fund_source" required>
             <option value="">-- Select --</option>
-            <option value="National" {% if employee.fund_source == "National" %}selected{% endif %}>National</option>
-            <option value="Local" {% if employee.fund_source == "Local" %}selected{% endif %}>Local</option>
-            <option value="Foreign" {% if employee.fund_source == "Foreign" %}selected{% endif %}>Foreign</option>
+            <option value="Regular" {% if employee.fund_source == "Regular" %}selected{% endif %}>Regular</option>
+            <option value="PRCMO" {% if employee.fund_source == "PRCMO" %}selected{% endif %}>PRCMO</option>
+            <option value="Manila Bay" {% if employee.fund_source == "Manila Bay" %}selected{% endif %}>Manila Bay</option>
         </select>
 
         <label for="with_tax_declaration">With Tax Declaration?</label>

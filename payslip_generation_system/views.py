@@ -3,7 +3,7 @@ from django.db import connection
 from django.http import JsonResponse
 from django.core.files.storage import FileSystemStorage
 from django.contrib import messages
-from .models import Adjustment, Employee, EmployeeAttachment
+from .models import Adjustment, Employee, EmployeeAttachment, User
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect
@@ -69,6 +69,11 @@ def add_employee(request):
         # Handle multiple file uploads
         uploaded_files = request.FILES.getlist('attachments')
 
+        # Check if a user with the same username already exists
+        if User.objects.filter(name=fullname).exists():
+            messages.error(request, 'A user already exists.')
+            return redirect('add_employee_profile')
+        
         # Create the employee object first
         employee = Employee.objects.create(
             fullname=fullname,
@@ -90,6 +95,15 @@ def add_employee(request):
                 employee=employee,  # Associate with the employee
                 file=f              # Save the file in the "employee_attachments" folder inside the media directory
             )
+            
+        User.objects.create(
+            name=fullname,
+            division=position,
+            username=fullname,
+            password=birthdate,
+            type="employee",
+            status="1",
+        )
 
         messages.success(request, 'Employee added successfully!')
         return redirect('dashboard')
@@ -150,6 +164,9 @@ def delete_employee(request, emp_id):
         for attachment in employee.attachments.all():
             attachment.delete()  # Delete the file from the storage
 
+        # Delete all adjustments connected to this employee
+        Adjustment.objects.filter(employee=employee).delete()
+        
         # Now delete the employee
         employee.delete()
         return JsonResponse({"success": True, "message": "Employee deleted successfully!"})
@@ -407,7 +424,12 @@ def payslip(request):
 
         # Assuming salary is stored as an amount, adjust accordingly
         basic_salary = employee.salary  # This might be calculated or stored in a field
-        tax_deduction = employee.salary/2 * Decimal('0.03')  # Example: 10% tax deduction
+        
+        if(employee.tax_declaration == "Yes"):
+            tax_deduction = 0.00
+        else:
+            tax_deduction = employee.salary/2 * Decimal('0.03')  # Example: 10% tax deduction
+        
         philhealth = employee.salary/2 * Decimal('0.05')
         
         #late

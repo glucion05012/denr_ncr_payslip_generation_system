@@ -9,7 +9,7 @@ from django.db import models
 class User(models.Model):
     id = models.AutoField(primary_key=True)  # Auto-incrementing primary key
     name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
+    email = models.EmailField(max_length=255)  # Unique email for each user
     contact_number = models.CharField(max_length=20)
     division = models.CharField(max_length=100)
     username = models.CharField(max_length=50, unique=True)
