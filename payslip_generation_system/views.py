@@ -5,10 +5,13 @@ from django.core.files.storage import FileSystemStorage
 from django.contrib import messages
 from .models import Adjustment, Employee, EmployeeAttachment
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 import json
+from decimal import Decimal
+
+from datetime import datetime
 
 # Create your views here.
 def test(request):
@@ -369,4 +372,77 @@ def employee_adjustments_json(request, emp_id):
         "recordsTotal": total_records,
         "recordsFiltered": filtered_records,
         "data": data
+    })
+    
+def payslip(request):
+    employees = Employee.objects.all()
+    
+    # Define month choices (you can make this dynamic if needed)
+    month_choices = [
+        ('January', 'January'),
+        ('February', 'February'),
+        ('March', 'March'),
+        ('April', 'April'),
+        ('May', 'May'),
+        ('June', 'June'),
+        ('July', 'July'),
+        ('August', 'August'),
+        ('September', 'September'),
+        ('October', 'October'),
+        ('November', 'November'),
+        ('December', 'December'),
+    ]
+
+    # Get the current month
+    current_month = datetime.now().strftime('%B') 
+
+    if request.method == 'POST':
+        # Get form data
+        employee_id = request.POST.get('employee')
+        selected_month = request.POST.get('month')
+        selected_cutoff = request.POST.get('cutoff')
+
+        # Fetch employee data
+        employee = Employee.objects.get(id=employee_id)
+
+        # Assuming salary is stored as an amount, adjust accordingly
+        basic_salary = employee.salary  # This might be calculated or stored in a field
+        tax_deduction = employee.salary/2 * Decimal('0.03')  # Example: 10% tax deduction
+        philhealth = employee.salary/2 * Decimal('0.05')
+        
+        #late
+        late_adjustments = Adjustment.objects.filter(
+            employee=employee,
+            name="Late",
+            month=selected_month,
+            cutoff=selected_cutoff
+            # Adjusted condition to match selected month
+        )
+        
+        late_amt_total = late_adjustments.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        late_min_total = late_adjustments.aggregate(Sum('details'))['details__sum'] or Decimal('0.00') 
+        
+        # Format the salary period
+        salary_period = f"{selected_month} - {selected_cutoff}"
+
+        context = {
+            'employee_name': employee.fullname,
+            'position': employee.position,
+            'employee_id': employee.id,
+            'salary_period': salary_period,
+            'basic_salary': basic_salary,
+            'tax_deduction': tax_deduction,
+            'philhealth': philhealth,
+            'late_amt_total': late_amt_total,
+            'late_min_total': late_min_total,
+            
+        }
+
+        return render(request, 'payslip.html', context)
+
+    # If it's a GET request, display the form with the employee and month choices
+    return render(request, 'payslip.html', {
+        'employees': employees,
+        'month_choices': month_choices,
+        'current_month': current_month,
     })

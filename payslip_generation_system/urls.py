@@ -27,6 +27,9 @@ urlpatterns = [
     # get data from database
     path('employee-data/', views.employee_data_json, name='employee_data_json'),
     path('employee/adjustments/json/<int:emp_id>/', views.employee_adjustments_json, name='employee_adjustments_json'),
+    
+    
+    path('payslip/', views.payslip, name='payslip'),
 
 ]
 
