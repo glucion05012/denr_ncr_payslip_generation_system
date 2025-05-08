@@ -76,7 +76,9 @@
 
     <form action="{% url 'edit_employee' employee.id %}" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
-        
+        <label for="employee_no">Employee No</label>
+        <input type="text" id="employee_no" name="employee_no" value="{{ employee.employee_no }}" required>
+
         <label for="fullname">Full Name</label>
         <input type="text" id="fullname" name="fullname" value="{{ employee.fullname }}" required>
 

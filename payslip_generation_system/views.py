@@ -63,10 +63,14 @@ def login(request):
     return render(request, 'login.html')
 
 def dashboard(request):
-    return render(request, 'dashboard.html')
+    if(request.session.get('user_type') == 'employee'):
+        return render(request, 'payslip.html')
+    else:
+        return render(request, 'dashboard.html')
 
 def add_employee(request):
     if request.method == 'POST':
+        employee_no = request.POST.get('employee_no')
         fullname = request.POST.get('fullname')
         date_hired = request.POST.get('date_hired')
         position = request.POST.get('position')
@@ -88,6 +92,7 @@ def add_employee(request):
         
         # Create the employee object first
         employee = Employee.objects.create(
+            employee_no=employee_no,
             fullname=fullname,
             date_hired=date_hired,
             position=position,
@@ -134,6 +139,7 @@ def edit_employee(request, emp_id):
 
     if request.method == "POST":
         # Get form data
+        employee_no = request.POST.get("employee_no")
         fullname = request.POST.get("fullname")
         position = request.POST.get("position")
         educational_attainment = request.POST.get("educational_attainment")
@@ -145,6 +151,7 @@ def edit_employee(request, emp_id):
         eligibility = request.POST.get("eligibility")
 
         # Update the employee
+        employee.employee_no = employee_no
         employee.fullname = fullname
         employee.position = position
         employee.educational_attainment = educational_attainment
@@ -159,6 +166,7 @@ def edit_employee(request, emp_id):
         # Handle new attachments
         files = request.FILES.getlist('attachments')
         for file in files:
+            # Create the EmployeeAttachment object
             EmployeeAttachment.objects.create(employee=employee, file=file)
             
         # Send response back
@@ -206,6 +214,7 @@ def employee_data_json(request):
     # Search filter
     if search_value:
         queryset = queryset.filter(
+            Q(employee_no__icontains=search_value) |
             Q(fullname__icontains=search_value) |
             Q(position__icontains=search_value) |
             Q(educational_attainment__icontains=search_value) |
@@ -218,7 +227,7 @@ def employee_data_json(request):
     total_records = queryset.count()  # Total records before filtering
 
     # Ordering logic (match the columns with their corresponding fields)
-    columns = ['fullname', 'date_hired', 'position', 'educational_attainment', 'birthdate', 'gender', 'fund_source', 'tax_declaration', 'salary', 'eligibility']
+    columns = ['employee_no', 'fullname', 'date_hired', 'position', 'educational_attainment', 'birthdate', 'gender', 'fund_source', 'tax_declaration', 'salary', 'eligibility']
     if order_col_index >= len(columns):
         order_column = 'date_hired'  # Default to sorting by date_hired
     else:
@@ -241,6 +250,7 @@ def employee_data_json(request):
         
         # Add data to the response
         data.append([
+            emp.employee_no,
             emp.fullname,
             emp.date_hired.strftime('%Y-%m-%d'),
             emp.position,
@@ -272,6 +282,7 @@ def view_employee(request, emp_id):
     
     # Prepare the employee data to send as JSON
     employee_data = {
+        'employee_no': employee.employee_no,
         'fullname': employee.fullname,
         'date_hired': employee.date_hired.strftime('%Y-%m-%d'),
         'position': employee.position,
@@ -307,17 +318,18 @@ def add_adjustment(request, emp_id):
     if request.method == 'POST':
         
         name = request.POST['name']
-        raw_amount = request.POST['details']
+        raw_amount = request.POST['amount']
+        raw_amount_details = request.POST['details']
 
         # Compute amount if the adjustment is for "Late"
         if name == 'Late':
             try:
-                minutes_late = float(raw_amount)
+                minutes_late = float(raw_amount_details)
                 daily_rate = float(employee.salary) / 22
                 per_minute_rate = daily_rate / (8 * 60)
                 computed_amount = round(per_minute_rate * minutes_late, 2)
             except Exception:
-                computed_amount = 0.00
+                computed_amount = Decimal('0.00')
         else:
             computed_amount = raw_amount  # use as is
 
@@ -335,12 +347,19 @@ def add_adjustment(request, emp_id):
         )
         messages.success(request, 'Adjustment successfully added.')
         return redirect('adjustments_employee', emp_id=employee.id)
+
+def safe_int(value, default=0):
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
     
 def employee_adjustments_json(request, emp_id):
     employee = get_object_or_404(Employee, id=emp_id)
-    draw = int(request.GET.get('draw', 1))
-    start = int(request.GET.get('start', 0))
-    length = int(request.GET.get('length', 10))
+
+    draw = safe_int(request.GET.get('draw'), 1)
+    start = safe_int(request.GET.get('start'), 0)
+    length = safe_int(request.GET.get('length'), 10)
     search_value = request.GET.get('search[value]', '')
 
     queryset = Adjustment.objects.filter(employee=employee)
@@ -360,44 +379,35 @@ def employee_adjustments_json(request, emp_id):
     total_records = Adjustment.objects.filter(employee=employee).count()
     filtered_records = queryset.count()
 
-    # Ordering logic
     columns = ['name', 'type', 'amount', 'details', 'cutoff_month', 'status', 'remarks', 'created_at']
-    order_col_index = int(request.GET.get('order[0][column]', 0))
+    order_col_index = safe_int(request.GET.get('order[0][column]'), 0)
     order_dir = request.GET.get('order[0][dir]', 'asc')
 
-    if order_col_index >= len(columns):
-        order_column = 'created_at'  # Default column for ordering
+    if 0 <= order_col_index < len(columns):
+        order_column = 'month' if columns[order_col_index] == 'cutoff_month' else columns[order_col_index]
     else:
-        # Map 'cutoff_month' to its model representation: `month` or `cutoff`
-        if columns[order_col_index] == 'cutoff_month':
-            order_column = 'month'  # or 'cutoff' depending on how you want to order it
-        else:
-            order_column = columns[order_col_index]
+        order_column = 'created_at'
 
     if order_dir == 'desc':
-        order_column = f'-{order_column}'  # Handle descending order
-    
-    # Apply ordering based on the dynamic column
+        order_column = f'-{order_column}'
+
     queryset = queryset.order_by(order_column)[start:start + length]
 
     data = []
     for adj in queryset:
-        if adj.name != "Late":
-            details = adj.details
-        else:
-            details = f"{int(adj.details)} minutes"
-        
-        if adj.type == "Deduction":
-            amount = f"<span style='color:red'>(₱{adj.amount:,.2f})</span>"
-        else:
-            amount = f"<span style='color:green'>₱{adj.amount:,.2f}</span>"
-            
+        details = f"{int(adj.details)} minutes" if adj.name == "Late" and adj.details.isdigit() else adj.details
+        amount = (
+            f"<span style='color:red'>(₱{adj.amount:,.2f})</span>"
+            if adj.type == "Deduction"
+            else f"<span style='color:green'>₱{adj.amount:,.2f}</span>"
+        )
+
         data.append({
             "name": adj.name,
             "type": adj.type,
             "amount": amount,
             "details": details,
-            "cutoff_month": f"{adj.month} - {adj.cutoff}",  # Display field
+            "cutoff_month": f"{adj.month} - {adj.cutoff}",
             "status": adj.status,
             "remarks": adj.remarks,
             "created_at": adj.created_at.strftime('%Y-%m-%d %H:%M'),
@@ -447,11 +457,22 @@ def payslip(request):
         # Fetch employee data
         employee = Employee.objects.get(id=employee_id)
 
+        has_adjustments = Adjustment.objects.filter(
+            employee=employee,
+            month=selected_month,
+            cutoff=selected_cutoff,
+            status="Approved"
+        ).exists()
+
+        if not has_adjustments:
+            messages.error(request, 'Payslip in process.')
+            return redirect('payslip')
+        
         # Assuming salary is stored as an amount, adjust accordingly
         basic_salary = employee.salary  # This might be calculated or stored in a field
         
         if(employee.tax_declaration == "Yes"):
-            tax_deduction = 0.00
+             tax_deduction = Decimal('0.00')
         else:
             tax_deduction = employee.salary/2 * Decimal('0.03')  # Example: 10% tax deduction
         
@@ -481,7 +502,7 @@ def payslip(request):
             cutoff=selected_cutoff,
             status="Approved"
             # Adjusted condition to match selected month
-        )
+        ).exclude(name="Late")
         
         # Sum the amount for all adjustments
         total_adjustment_amount_minus = all_adjustment_minus.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
@@ -509,6 +530,7 @@ def payslip(request):
         basic_salary_cutoff = basic_salary / 2  # Assuming the salary is for a month and you want half for the cutoff
         
         context = {
+            'employee_no': employee.employee_no,
             'employee_name': employee.fullname,
             'position': employee.position,
             'employee_id': employee.id,

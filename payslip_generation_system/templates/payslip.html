@@ -46,22 +46,29 @@
 
     @media print {
         @page {
-            size: landscape;
-            margin: 20mm;
+            size: A4 portrait;
+            margin: 15mm;
         }
 
         body {
             -webkit-print-color-adjust: exact;
+            overflow: hidden !important;
         }
 
         .payslip-container {
             width: 100%;
+            {% comment %} height: 50vh; /* Half-page */ {% endcomment %}
+            page-break-after: always;
+            overflow: hidden; /* Remove inner scrollbar */
         }
 
-        .btn, form {
-            display: none;
+        .btn, form, .form-group, button,
+        .print-button, .footer, .no-print {
+            display: none !important;
         }
     }
+
+
 </style>
 
 
@@ -119,8 +126,8 @@
                         <td>{{ position }}</td>
                     </tr>
                     <tr>
-                        <th>Employee ID</th>
-                        <td>{{ employee_id }}</td>
+                        <th>Employee No.</th>
+                        <td>{{ employee_no }}</td>
                     </tr>
                     <tr>
                         <th>Salary Period</th>
@@ -181,15 +188,29 @@
                     <tr><th colspan="2" class="text-center">Adjustments</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td>Adjustments 
+                    <tr>
+                    <td> 
                         <ul>
                             {% for adjustment in all_adjustment_plus %}
-                                <li>{{ adjustment.name }} - ₱{{ adjustment.amount|floatformat:2|intcomma }}</li>
+                                <li>{{ adjustment.name }}</li>
                             {% empty %}
                                 <li>No adjustments</li>
                             {% endfor %}
                         </ul>
-                    </td><td>₱{{ total_adjustment_amount_plus|floatformat:2|intcomma }}</td></tr>
+                    </td>
+                    <td> 
+                        <ul style='list-style-type: none;
+                                    margin: 0;
+                                    padding: 0;'>
+                            {% for adjustment in all_adjustment_plus %}
+                                <li> ₱{{ adjustment.amount|floatformat:2|intcomma }}</li>
+                            {% empty %}
+                                <li>No adjustments</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                        {% comment %} <td>₱{{ total_adjustment_amount_plus|floatformat:2|intcomma }}</td> {% endcomment %}
+                    </tr>
                     <tr><td><strong>Total Adjustment</strong></td><td><strong>₱{{ total_add|floatformat:2|intcomma }}</strong></td></tr>
                 </tbody>
             </table>
@@ -198,9 +219,17 @@
     
     
 
-    <div class="footer">
-        <p>Generated on: {{ current_date }}</p>
-        <p>Company Confidential</p>
+    <div class="text-center footer-print">
+        <p>Generated on DENR NCR PayGeS</p>
+        <p>For any inquiries, please contact the HR Department.</p>
+        <p><b>Disclaimer:</b> This payslip is computer-generated and does not require a signature.</p>
+        <p>The details presented are provisional and intended for internal review purposes only. Final figures are subject to verification and may be revised accordingly.</p>
+       
     </div>
+    
+    <div class="text-center print-button">
+        <button class="btn btn-success mb-3" onclick="window.print()">Print Payslip</button>
+    </div>
+
 </div>
 {% endblock %}

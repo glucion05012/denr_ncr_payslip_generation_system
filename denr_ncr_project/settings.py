@@ -33,7 +33,7 @@ SECRET_KEY = 'django-insecure-v-&7(k_9sp0o-c*c2l0)=x1!y_e5&in30s)4@ixb3+(so3ghf4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['denrncrsys.online', 'denrncrsys.online:8201', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -59,7 +59,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Allow all origins (for testing or local dev)
+CORS_ALLOW_ALL_ORIGINS = True
+
 ROOT_URLCONF = 'denr_ncr_project.urls'
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://denrncrsys.online:8201",
+]
 
 TEMPLATES = [
     {
@@ -86,11 +93,11 @@ WSGI_APPLICATION = 'denr_ncr_project.wsgi.application'
 DATABASES = {
    'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'denr_pages',
+        'NAME': 'pages',
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': '$2y$10$K1hW8Cz/7q6P7T1LJZlUIOV5m3PjJThHyZJndcGziUURCgBzUpU2e',
         'HOST': 'localhost',
-        'PORT': '3307'
+        'PORT': '3306'
     }
 }
 
@@ -117,9 +124,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-ph'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Manila'
 
 USE_I18N = True
 
@@ -129,9 +136,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"  # or another folder
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

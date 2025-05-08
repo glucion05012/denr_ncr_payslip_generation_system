@@ -41,6 +41,7 @@ class Employee(models.Model):
         ('Others', 'Others'),
     ]
 
+    employee_no = models.CharField(max_length=255, default='Unknown')
     fullname = models.CharField(max_length=255, default='Unknown')
     date_hired = models.DateField()
     position = models.CharField(max_length=100)
@@ -65,21 +66,17 @@ class Employee(models.Model):
     def __str__(self):
         return f"{self.position} - {self.date_hired}"
 
-def generate_random_filename(instance, filename):
-    # Generate a random string for the filename
-    random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=8))  # 8-character random string
-    # Get the file extension
-    extension = filename.split('.')[-1]
-    # Combine random string with the file extension
-    new_filename = f'{random_string}.{extension}'
-    # Return the path where the file should be saved
+def generate_filename(instance, filename):
+    employee_name = instance.employee.fullname.replace(' ', '_')
+    base_name, extension = os.path.splitext(filename)
+    new_filename = f"{employee_name}_{base_name}{extension}"
     return os.path.join('employee_attachments', new_filename)
 
 class EmployeeAttachment(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attachments')
-    
+
     # Use the custom function to generate a random filename for each uploaded file
-    file = models.FileField(upload_to=generate_random_filename)  # Attach to the 'employee_attachments/' folder
+    file = models.FileField(upload_to=generate_filename)  # Attach to the 'employee_attachments/' folder
 
     def delete(self, *args, **kwargs):
         # Delete the file from the file system
