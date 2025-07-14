@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 import json
 from decimal import Decimal
+from django.db import connections
 
 from datetime import datetime
 
@@ -132,7 +133,18 @@ def add_employee(request):
         messages.success(request, 'Employee added successfully!')
         return redirect('dashboard')
 
-    return render(request, 'add_emp.html')
+    with connections['dniis_db'].cursor() as cursor:
+        cursor.execute('SELECT * FROM systems_division')
+        division = cursor.fetchall()
+        
+    with connections['dniis_db'].cursor() as cursor:
+        cursor.execute('SELECT * FROM systems_section')
+        section = cursor.fetchall()
+        
+    return render(request, 'add_emp.html', {
+            'division': division,
+            'section': section,
+        })
 
 def edit_employee(request, emp_id):
     employee = get_object_or_404(Employee, id=emp_id)
@@ -201,6 +213,7 @@ def delete_employee(request, emp_id):
     return JsonResponse({"success": False, "message": "Invalid request method!"})
 
 def employee_data_json(request):
+    user_type = request.session['user_type']
     draw = int(request.GET.get('draw', 1))
     start = int(request.GET.get('start', 0))
     length = int(request.GET.get('length', 10))
@@ -208,10 +221,31 @@ def employee_data_json(request):
     order_col_index = int(request.GET.get('order[0][column]', 0))
     order_dir = request.GET.get('order[0][dir]', 'asc')
 
-    # Basic queryset
+    # Base queryset
     queryset = Employee.objects.all()
 
-    # Search filter
+    # Section filtering by user_type
+    section_map = {
+        'preparator_meo_s': 43,
+        'preparator_meo_e': 42,
+        'preparator_meo_w': 44,
+        'preparator_meo_n': 45
+    }
+
+    if user_type == 'admin':
+        queryset = Employee.objects.all()
+    elif user_type in section_map:
+        queryset = Employee.objects.filter(section=section_map[user_type])
+    else:
+        # Return empty response immediately
+        return JsonResponse({
+            'draw': int(request.GET.get('draw', 1)),
+            'recordsTotal': 0,
+            'recordsFiltered': 0,
+            'data': []
+        })
+        
+    # Apply search filter
     if search_value:
         queryset = queryset.filter(
             Q(employee_no__icontains=search_value) |
@@ -224,19 +258,16 @@ def employee_data_json(request):
             Q(eligibility__icontains=search_value)
         )
 
-    total_records = queryset.count()  # Total records before filtering
+    total_records = queryset.count()
 
-    # Ordering logic (match the columns with their corresponding fields)
-    columns = ['employee_no', 'fullname', 'date_hired', 'position', 'educational_attainment', 'birthdate', 'gender', 'fund_source', 'tax_declaration', 'salary', 'eligibility']
-    if order_col_index >= len(columns):
-        order_column = 'date_hired'  # Default to sorting by date_hired
-    else:
-        order_column = columns[order_col_index]
-    
+    # Ordering logic
+    columns = [
+        'employee_no', 'fullname', 'date_hired', 'position', 'educational_attainment',
+        'birthdate', 'gender', 'fund_source', 'tax_declaration', 'salary', 'eligibility'
+    ]
+    order_column = columns[order_col_index] if order_col_index < len(columns) else 'date_hired'
     if order_dir == 'desc':
         order_column = f'-{order_column}'
-
-    # Apply ordering to the queryset
     queryset = queryset.order_by(order_column)
 
     # Pagination
@@ -247,8 +278,6 @@ def employee_data_json(request):
     data = []
     for emp in page:
         salary = f"₱{emp.salary:,.2f}"
-        
-        # Add data to the response
         data.append([
             emp.employee_no,
             emp.fullname,
@@ -261,20 +290,29 @@ def employee_data_json(request):
             emp.tax_declaration,
             salary,
             emp.eligibility,
-            f"""<button class='adjustments-btn btn btn-warning btn-sm view-btn' title='Adjustments' data-id='{emp.id}'><i class="fas fa-list"></i></button> 
-                <button class='btn btn-info btn-sm view-btn' data-id='{emp.id}' title='Information' data-toggle='modal' data-target='#viewModal'>
-                    <i class="fas fa-eye"></i>
-                </button> 
-                <button class='edit-btn btn btn-primary btn-sm view-btn' title='Edit' data-id='{emp.id}'><i class="fas fa-pen"></i></button> 
-                <button class='delete-btn btn btn-danger btn-sm view-btn' title='Delete' data-id='{emp.id}'><i class="fas fa-trash"></i></button>"""
+            f"""
+            <button class='adjustments-btn btn btn-warning btn-sm view-btn' title='Adjustments' data-id='{emp.id}'>
+                <i class="fas fa-list"></i>
+            </button> 
+            <button class='btn btn-info btn-sm view-btn' data-id='{emp.id}' title='Information' data-toggle='modal' data-target='#viewModal'>
+                <i class="fas fa-eye"></i>
+            </button> 
+            <button class='edit-btn btn btn-primary btn-sm view-btn' title='Edit' data-id='{emp.id}'>
+                <i class="fas fa-pen"></i>
+            </button> 
+            <button class='delete-btn btn btn-danger btn-sm view-btn' title='Delete' data-id='{emp.id}'>
+                <i class="fas fa-trash"></i>
+            </button>
+            """
         ])
 
     return JsonResponse({
         'draw': draw,
         'recordsTotal': total_records,
-        'recordsFiltered': total_records,  # For now, set filtered same as total
+        'recordsFiltered': total_records,
         'data': data
     })
+
     
 def view_employee(request, emp_id):
     employee = get_object_or_404(Employee, id=emp_id)

@@ -14,8 +14,15 @@ class User(models.Model):
     division = models.CharField(max_length=100)
     username = models.CharField(max_length=50, unique=True)
     password = models.CharField(max_length=128)  # store hashed password
-    type = models.CharField(max_length=50)       # e.g., admin, staff
-    status = models.CharField(max_length=20)     # e.g., active, inactive
+    type = models.CharField(max_length=50) # e.g., admin, staff
+    # admin
+    # employee
+    # preparator_denr
+    # preparator_meo_s = 43
+    # preparator_meo_e = 42
+    # preparator_meo_w = 44
+    # preparator_meo_n = 45
+    status = models.CharField(max_length=20) # e.g., active, inactive
 
     class Meta:
         db_table = 'users'
@@ -54,6 +61,8 @@ class Employee(models.Model):
     birthdate = models.DateField()
     gender = models.CharField(max_length=6, choices=GENDER_CHOICES)
     fund_source = models.CharField(max_length=100)
+    section = models.CharField(max_length=100, blank=True, null=True)
+    division = models.CharField(max_length=100, blank=True, null=True)
     tax_declaration = models.CharField(
         max_length=3, 
         choices=YES_NO_CHOICES, 

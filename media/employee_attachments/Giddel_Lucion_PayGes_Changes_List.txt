@@ -1,0 +1,32 @@
+Add Employee Section
+- add employee permanent address field
+- add employee contact number field
+
+Payslip Section
+- tax declaration deduction conditions
+- paper size for printing is half only
+- year on payslip
+- completed date format on salary period (mm/dd/yyyy)
+- add logo on printing and QR
+- Employee sorting on employee selection
+
+Tax Declaration Deduction conditions
+- checkbox if stero ranger and cos
+- no tax if cos and stero ranger but if it reaches 250k in one year
+  taxable (5% or 8% for confirmation)
+
+Philhealth
+- ER if not reach 9,999 the tax is 500 
+  but if reached 10,000 above fixed 5% per cut off
+
+
+Access Control
+Personel - Preperator (Niyo)
+Finance - Checker/Approver
+
+System
+- Edit and Validation Approval Function 
+
+2nd Phase
+- Reports
+- Summary Data per MEO

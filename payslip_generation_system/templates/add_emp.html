@@ -106,12 +106,25 @@
         <option value="Female">Female</option>
         </select>
 
+        <label for="division">Division</label>
+            <select id="division" name="division" required>
+            <option value="">-- Select --</option>
+            {% for div in division %}
+                <option value="{{ div.0 }}">{{ div.3 }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="section">Section</label>
+            <select id="section" name="section" required>
+            <option value="">-- Select --</option>
+        </select>
+
         <label for="fund_source">Fund Source</label>
         <select id="fund_source" name="fund_source" required>
-        <option value="">-- Select --</option>
-        <option value="Regular">Regular</option>
-        <option value="PRCMO">PRCMO</option>
-        <option value="Manila Bay">Manila Bay</option>
+            <option value="">-- Select --</option>
+            <option value="Regular">Regular</option>
+            <option value="PRCMO">PRCMO</option>
+            <option value="Manila Bay">Manila Bay</option>
         </select>
 
         <label for="with_tax_declaration">With Tax Declaration?</label>
@@ -137,4 +150,24 @@
         <button type="submit">Save</button>
     </form>
 
+    <script>
+        document.getElementById('division').addEventListener('change', function () {
+            var selectedDivisionId = this.value;
+            var sectionSelect = document.getElementById('section');
+
+            // Clear all current options
+            sectionSelect.innerHTML = '<option value="">-- Select --</option>';
+
+            // Get all section options from a hidden template or initial data
+            {% for sec in section %}
+                var divisionId = "{{ sec.1 }}";
+                if (divisionId === selectedDivisionId) {
+                    var opt = document.createElement('option');
+                    opt.value = "{{ sec.0 }}";
+                    opt.text = "{{ sec.3 }}";
+                    sectionSelect.appendChild(opt);
+                }
+            {% endfor %}
+        });
+    </script>
 {% endblock %}
