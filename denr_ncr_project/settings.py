@@ -103,7 +103,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',  # For MariaDB, use MySQL engine
         'NAME': 'denr_ncr',
         'USER': 'root',
-        'PASSWORD': '$2y$10$K1hW8Cz/7q6P7T1LJZlUIOV5m3PjJThHyZJndcGziUURCgBzUpU2e',
+        'PASSWORD': '',
         'HOST': 'localhost',  # Or the host of the other MariaDB server
         'PORT': '3306',  # Default port for MariaDB
     }
